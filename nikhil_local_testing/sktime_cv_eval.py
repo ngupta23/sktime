@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #%%
 from datetime import datetime
 
@@ -23,6 +24,7 @@ from sktime.forecasting.all import *
 
 #%%
 from sktime import show_versions
+
 show_versions()
 
 
@@ -40,21 +42,7 @@ plot_series(y_train, y_test, labels=["y_train", "y_test"])
 print(y.shape, y_train.shape[0], y_test.shape[0])
 print(y.index)
 
-
-
 #%%
-# Simple Baseline (with non-stationary data)
-# tuning the 'n_estimator' hyperparameter of RandomForestRegressor from scikit-learn
-# regressor_param_grid = {"n_estimators": [100, 200, 300]}
-regressor_param_grid = {"n_estimators": [200]}
-forecaster_param_grid = {"window_length": [12, 15]}
-
-# create a tunnable regressor with GridSearchCV
-regressor = GridSearchCV(RandomForestRegressor(), param_grid=regressor_param_grid, verbose=1)
-forecaster = ReducedRegressionForecaster(
-    regressor, window_length=window_length, strategy="recursive"
-)
-
 # cv = SlidingWindowSplitter(initial_window=int(len(y_train) * 0.5))
 cv = SlidingWindowSplitter(
     initial_window=20,
@@ -64,9 +52,48 @@ cv = SlidingWindowSplitter(
     start_with_window=True,
 )
 
-gscv = ForecastingGridSearchCV(forecaster, cv=cv, param_grid=forecaster_param_grid, verbose=1)
+#%%
+# ARIMA
+
+forecaster_param_grid = {"sp": [12]}
+forecaster = AutoARIMA(suppress_warnings=True)
+
+gscv_arima = ForecastingGridSearchCV(
+    forecaster, cv=cv, param_grid=forecaster_param_grid, verbose=True
+)
+gscv_arima.fit(y_train)
+# y_pred = gscv_arima.predict(fh)
+# plot_series(y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"])
+# smape_loss(y_test, y_pred)
+
+
+#%%
+# scikit model
+
+# Simple Baseline (with non-stationary data)
+# tuning the 'n_estimator' hyperparameter of RandomForestRegressor from scikit-learn
+# regressor_param_grid = {"n_estimators": [100, 200, 300]}
+regressor_param_grid = {"n_estimators": [200]}
+forecaster_param_grid = {"window_length": [12, 15]}
+
+# create a tunnable regressor with GridSearchCV
+regressor = GridSearchCV(
+    RandomForestRegressor(), param_grid=regressor_param_grid, verbose=1
+)
+forecaster = ReducedRegressionForecaster(
+    regressor, window_length=window_length, strategy="recursive"
+)
+
+
+
+gscv = ForecastingGridSearchCV(
+    forecaster, cv=cv, param_grid=forecaster_param_grid, verbose=1
+)
 
 gscv.fit(y_train)
 # y_pred = gscv.predict(fh)
 # plot_series(y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"])
 # smape_loss(y_test, y_pred)
+
+
+
